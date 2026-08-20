@@ -104,7 +104,7 @@ Never commit the real `.env`. `.gitignore` must include `.env`.
 3. Run this SQL in the Supabase SQL editor:
 
 ```sql
-create type event_type as enum ('wednesday', 'friday', 'saturday');
+create type event_type as enum ('wednesday', 'friday', 'saturday', 'special');
 
 create table members (
   id uuid primary key default gen_random_uuid(),
@@ -140,18 +140,19 @@ alter table members enable row level security;
 alter table months enable row level security;
 alter table assignments enable row level security;
 
--- public read
-create policy "public read members" on members for select using (true);
-create policy "public read months" on months for select using (true);
-create policy "public read assignments" on assignments for select using (true);
+-- Drop old write policies if existing
+drop policy if exists "admin write members" on members;
+drop policy if exists "admin write months" on months;
+drop policy if exists "admin write assignments" on assignments;
 
--- admin (authenticated) write
-create policy "admin write members" on members for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "admin write months" on months for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "admin write assignments" on assignments for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "public write members" on members;
+drop policy if exists "public write months" on months;
+drop policy if exists "public write assignments" on assignments;
+
+-- Create policies allowing write access for Edit Mode
+create policy "public write members" on members for all using (true) with check (true);
+create policy "public write months" on months for all using (true) with check (true);
+create policy "public write assignments" on assignments for all using (true) with check (true);
 ```
 
 Since there is only ever one admin account, "authenticated" is sufficient —
@@ -200,24 +201,35 @@ this is the one piece of logic worth verifying carefully.
 
 ---
 
-## 6. Phase 4 — Data hooks
+## 6. Phase 4 — Data hooks + shared state
 
-- `useAuth`: subscribe to `supabase.auth.onAuthStateChange`, expose
-  `{ session, signIn, signOut }`.
-- `useMembers`: fetch active members, expose `addMember`, `removeMember`
+- `useAuth`: subscribes to `supabase.auth.onAuthStateChange`, exposes
+  `{ session, isAdmin, signIn, signOut }`. Called exactly once, inside
+  `AuthProvider` (see below) — not directly by leaf components.
+- `useMembers`: fetches active members, exposes `addMember`, `removeMember`
   (soft-delete via `active = false` so historical assignments keep their
   name).
-- `useAssignments(monthId)`: fetch assignments for a month, expose
-  `updateAssignment`, `toggleLock`, `regenerateMonth` (calls the algorithm,
-  then bulk-upserts).
+- `useAssignments(monthId)`: fetches assignments for a month, exposes
+  `updateAssignment` (also the target for drag-and-drop drops — a drop and a
+  manual dropdown edit both just call this), `toggleLock`, `regenerateMonth`
+  (calls the algorithm, then bulk-upserts on `(month_id, day_date,
+event_type, slot_index)`).
 
 Keep Supabase calls only inside `hooks/`, not scattered through components.
 
+### Shared state: React Context, not a state library
+
+Two providers wrap the app, each owning one of the hooks above so there's a
+single Supabase listener / single fetched copy of the data, not one per
+consuming component:
 ---
 
 ## 7. Phase 5 — UI
 
 Build in this order so there's something visible early:
+
+Use Shadcn components for everything: Button, date pickers (Calendar), Forms (Input, Field, Etc), Sidebar,
+Card, Badge, etc. Install the component if not avaliable
 
 1. `CalendarGrid` in **read-only** mode against hardcoded mock data — gets the
    grid layout right (columns: Wed | Fri | Sat, outside-month cells muted)

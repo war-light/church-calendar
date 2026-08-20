@@ -1,4 +1,4 @@
-export type EventType = "wednesday" | "friday" | "saturday";
+export type EventType = "wednesday" | "friday" | "saturday" | "special";
 
 export interface Member {
   id: string;
@@ -12,6 +12,11 @@ export interface MonthRecord {
   year: number;
   month: number;
   is_current: boolean;
+}
+
+export interface DaySpec {
+  date: string;
+  eventType: EventType;
 }
 
 export interface Assignment {

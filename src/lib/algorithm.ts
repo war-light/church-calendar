@@ -1,15 +1,13 @@
-import { Assignment, EventType, Member } from "../types";
+import { Assignment, DaySpec, EventType, Member } from "../types";
+
+export type { DaySpec };
 
 export const SLOT_COUNTS: Record<EventType, number> = {
   wednesday: 1,
   friday: 2,
   saturday: 3,
+  special: 1,
 };
-
-export interface DaySpec {
-  date: string; // ISO date format YYYY-MM-DD
-  eventType: EventType;
-}
 
 export function generateMonthAssignments(
   daysInMonth: DaySpec[],
@@ -17,11 +15,8 @@ export function generateMonthAssignments(
   existingAssignments: Assignment[] = [],
 ): Assignment[] {
   const activeMembers = members.filter((m) => m.active);
-  if (activeMembers.length === 0) {
-    return existingAssignments;
-  }
 
-  // Create lookup for existing assignments by key (date + index) or date
+  // Group existing assignments by date
   const existingByDate = new Map<string, Assignment[]>();
   for (const assignment of existingAssignments) {
     const list = existingByDate.get(assignment.day_date) || [];
@@ -29,7 +24,7 @@ export function generateMonthAssignments(
     existingByDate.set(assignment.day_date, list);
   }
 
-  // Track assignment counts per member (starting with locked assignments)
+  // Track running assignment counts per active member, starting with locked assignments
   const memberCounts = new Map<string, number>();
   activeMembers.forEach((m) => memberCounts.set(m.id, 0));
 
@@ -49,61 +44,83 @@ export function generateMonthAssignments(
   const result: Assignment[] = [];
 
   for (const day of daysInMonth) {
-    const requiredSlots = SLOT_COUNTS[day.eventType];
+    const defaultSlots = SLOT_COUNTS[day.eventType] || 1;
     const dayExisting = existingByDate.get(day.date) || [];
+    const requiredSlots = Math.max(defaultSlots, dayExisting.length);
 
+    const slots: (Assignment | null)[] = new Array(requiredSlots).fill(null);
     const assignedToday = new Set<string>();
 
-    for (let slotIdx = 0; slotIdx < requiredSlots; slotIdx++) {
-      const existingSlot = dayExisting[slotIdx];
+    // Pass 1: Keep all locked assignments and mark their members as assigned today
+    for (let i = 0; i < requiredSlots; i++) {
+      const existing = dayExisting[i];
+      if (existing && existing.locked) {
+        slots[i] = { ...existing };
+        if (existing.member_id) {
+          assignedToday.add(existing.member_id);
+        }
+      }
+    }
 
-      if (existingSlot && existingSlot.locked && existingSlot.member_id) {
-        result.push({ ...existingSlot });
-        assignedToday.add(existingSlot.member_id);
-      } else {
-        // Pick an unassigned member for today with the lowest total count
-        const availableMembers = activeMembers.filter(
-          (m) => !assignedToday.has(m.id),
-        );
+    // Pass 2: Fill unlocked slots using weighted round-robin among available active members
+    for (let i = 0; i < requiredSlots; i++) {
+      if (slots[i] !== null) continue;
 
-        let chosenMemberId: string | null = null;
+      const existingSlot = dayExisting[i];
 
-        if (availableMembers.length > 0) {
-          // Find lowest count
-          let minCount = Infinity;
-          availableMembers.forEach((m) => {
-            const count = memberCounts.get(m.id) || 0;
-            if (count < minCount) {
-              minCount = count;
-            }
-          });
+      // Available active members not yet assigned today
+      let availableMembers = activeMembers.filter(
+        (m) => !assignedToday.has(m.id),
+      );
 
-          // Candidates tied for min count
-          const candidates = availableMembers.filter(
-            (m) => (memberCounts.get(m.id) || 0) === minCount,
-          );
+      // If everyone is assigned today but we still have slots (e.g. members < requiredSlots),
+      // fall back to all active members to avoid leaving slots empty
+      if (availableMembers.length === 0 && activeMembers.length > 0) {
+        availableMembers = [...activeMembers];
+      }
 
-          // Random tie-break
-          const selected =
-            candidates[Math.floor(Math.random() * candidates.length)];
-          chosenMemberId = selected.id;
+      let chosenMemberId: string | null = null;
 
-          // Increment count and mark as assigned today
-          memberCounts.set(
-            chosenMemberId,
-            (memberCounts.get(chosenMemberId) || 0) + 1,
-          );
-          assignedToday.add(chosenMemberId);
+      if (availableMembers.length > 0) {
+        // Find minimum count among available members
+        let minCount = Infinity;
+        for (const m of availableMembers) {
+          const count = memberCounts.get(m.id) || 0;
+          if (count < minCount) {
+            minCount = count;
+          }
         }
 
-        result.push({
-          id: existingSlot?.id || crypto.randomUUID(),
-          month_id: existingSlot?.month_id || "",
-          day_date: day.date,
-          event_type: day.eventType,
-          member_id: chosenMemberId,
-          locked: false,
-        });
+        const candidates = availableMembers.filter(
+          (m) => (memberCounts.get(m.id) || 0) === minCount,
+        );
+
+        // Break ties randomly
+        const selected =
+          candidates[Math.floor(Math.random() * candidates.length)];
+        chosenMemberId = selected.id;
+
+        // Update counts and assigned state
+        memberCounts.set(
+          chosenMemberId,
+          (memberCounts.get(chosenMemberId) || 0) + 1,
+        );
+        assignedToday.add(chosenMemberId);
+      }
+
+      slots[i] = {
+        id: existingSlot?.id || crypto.randomUUID(),
+        month_id: existingSlot?.month_id || "",
+        day_date: day.date,
+        event_type: day.eventType,
+        member_id: chosenMemberId,
+        locked: false,
+      };
+    }
+
+    for (const slot of slots) {
+      if (slot) {
+        result.push(slot);
       }
     }
   }
