@@ -17,16 +17,18 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Church, Edit3, Loader2, Moon, Sun, Users } from "lucide-react";
+import { Church, Edit3, KeyRound, Loader2, LogOut, Moon, Sun, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CalendarGrid } from "./components/CalendarGrid";
 import { ExportButton } from "./components/ExportButton";
+import { LoginForm } from "./components/LoginForm";
 import { MemberManager } from "./components/MemberManager";
 import { MemberSidebar } from "./components/MemberSidebar";
 import { MonthPicker } from "./components/MonthPicker";
 import { ReshuffleButton } from "./components/ReshuffleButton";
 import { AppProviders } from "./context/AppProviders";
 import { useAssignmentsContext } from "./context/AssignmentsContext";
+import { useAuthContext } from "./context/AuthContext";
 import { useMembersContext } from "./context/MembersContext";
 import { useMonthsContext } from "./context/MonthsContext";
 import { applyThemeClass, useThemeStore } from "./hooks/useThemeStore";
@@ -42,19 +44,29 @@ function MainContent() {
     loading: assignmentsLoading,
   } = useAssignmentsContext();
 
+  const { isAdmin: isAuthenticated, signOut } = useAuthContext();
+
   const { theme, toggleTheme } = useThemeStore();
 
   useEffect(() => {
     applyThemeClass(theme);
   }, [theme]);
 
-  const [isEditMode, setIsEditMode] = useState<boolean>(true);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [isMemberManagerOpen, setIsMemberManagerOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [activeDragMemberId, setActiveDragMemberId] = useState<string | null>(
     null,
   );
 
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Admin controls require a signed-in editor
+  const isAdmin = isAuthenticated && isEditMode;
+
+  useEffect(() => {
+    if (!isAuthenticated) setIsEditMode(false);
+  }, [isAuthenticated]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -66,7 +78,7 @@ function MainContent() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragMemberId(null);
-    if (!event.over || !isEditMode) return;
+    if (!event.over || !isAdmin) return;
 
     const memberId = event.active.id as string;
     const droppableData = event.over.data.current as
@@ -171,7 +183,7 @@ function MainContent() {
                 />
                 <Label
                   htmlFor="edit-mode"
-                  className="text-xs font-semibold cursor-pointer"
+                  className={`text-xs font-semibold ${!isAuthenticated ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`}
                 >
                   Edit mode
                 </Label>
@@ -179,10 +191,11 @@ function MainContent() {
                   id="edit-mode"
                   checked={isEditMode}
                   onCheckedChange={setIsEditMode}
+                  disabled={!isAuthenticated}
                 />
               </div>
 
-              {isEditMode && (
+              {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -191,6 +204,29 @@ function MainContent() {
                 >
                   <Users className="w-3.5 h-3.5 text-primary" />
                   <span>Roster</span>
+                </Button>
+              )}
+
+              {isAuthenticated ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => signOut()}
+                  className="gap-1.5 rounded-xl text-xs font-semibold text-muted-foreground"
+                  title="Sign out of admin session"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLoginOpen(true)}
+                  className="gap-1.5 rounded-xl text-xs font-semibold"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-primary" />
+                  <span>Sign In</span>
                 </Button>
               )}
             </div>
@@ -203,10 +239,10 @@ function MainContent() {
           <Card className="border-border shadow-xs bg-card/60">
             <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-4">
               <div className="flex items-center space-x-3">
-                <MonthPicker isAdmin={isEditMode} />
+                <MonthPicker isAdmin={isAdmin} />
               </div>
               <div className="flex items-center gap-2.5">
-                <ReshuffleButton isAdmin={isEditMode} />
+                <ReshuffleButton isAdmin={isAdmin} />
                 <ExportButton
                   targetRef={gridRef}
                   monthLabel={monthLabel}
@@ -231,14 +267,14 @@ function MainContent() {
                   monthRecord={selectedMonth}
                   assignments={assignments}
                   members={members}
-                  isAdmin={isEditMode}
+                  isAdmin={isAdmin}
                   activeDragMemberId={activeDragMemberId}
                   onUpdateAssignment={handleUpdateAssignment}
                   onToggleLock={handleToggleLock}
                 />
               </div>
               <div className="lg:col-span-1">
-                <MemberSidebar isAdmin={isEditMode} />
+                <MemberSidebar isAdmin={isAdmin} />
               </div>
             </div>
           )}
@@ -271,6 +307,11 @@ function MainContent() {
         <MemberManager
           isOpen={isMemberManagerOpen}
           onClose={() => setIsMemberManagerOpen(false)}
+        />
+
+        <LoginForm
+          isOpen={isLoginOpen}
+          onClose={() => setIsLoginOpen(false)}
         />
       </div>
     </DndContext>

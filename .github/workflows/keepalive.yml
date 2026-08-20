@@ -1,0 +1,17 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    # Weekly Monday 00:00 UTC — prevents free-tier project from pausing
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        run: |
+          curl -s -o /dev/null -w "Supabase ping status: %{http_code}\n" \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/months?select=id&limit=1" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}"

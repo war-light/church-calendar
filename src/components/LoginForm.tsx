@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, KeyRound, Lock, Mail } from "lucide-react";
+import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import React, { useState } from "react";
 import { useAuthContext } from "../context/AuthContext";
+import { ADMIN_EMAIL } from "../lib/adminConfig";
 
 interface LoginFormProps {
   isOpen: boolean;
@@ -20,8 +21,7 @@ interface LoginFormProps {
 
 export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
   const { signIn } = useAuthContext();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,20 +29,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please fill in both email and password.");
+    if (!passcode.trim()) {
+      setError("Please enter the admin passcode.");
       return;
     }
 
     setSubmitting(true);
-    const { error: authError } = await signIn(email.trim(), password);
+    const { error: authError } = await signIn(ADMIN_EMAIL, passcode);
     setSubmitting(false);
 
     if (authError) {
-      setError(authError.message || "Invalid credentials. Please try again.");
+      setError(authError.message || "Invalid passcode. Please try again.");
     } else {
-      setEmail("");
-      setPassword("");
+      setPasscode("");
       onClose();
     }
   };
@@ -65,7 +64,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
                 Admin Sign In
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Enter credentials to unlock editing controls
+                Enter the shared passcode to unlock editing controls
               </DialogDescription>
             </div>
           </div>
@@ -80,38 +79,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-semibold">
-              Email Address
-            </Label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@church.org"
-                required
-                className="pl-9 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="password font-semibold"
-              className="text-xs font-semibold"
-            >
-              Password
+            <Label htmlFor="passcode" className="text-xs font-semibold">
+              Admin Passcode
             </Label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                id="password"
+                id="passcode"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
                 placeholder="••••••••"
+                autoFocus
                 required
                 className="pl-9 text-sm"
               />

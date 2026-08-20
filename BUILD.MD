@@ -90,6 +90,7 @@ Create `.env.example`:
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_ADMIN_EMAIL=
 ```
 
 Never commit the real `.env`. `.gitignore` must include `.env`.
@@ -99,8 +100,10 @@ Never commit the real `.env`. `.gitignore` must include `.env`.
 ## 4. Phase 2 — Supabase project + schema
 
 1. Create a new Supabase project (free tier).
-2. Create one Auth user for the admin (email + password), via the Supabase
-   dashboard — do not build a signup flow, there is only ever one admin.
+2. Create ONE Auth user that every editor shares (email + password), via the
+   Supabase dashboard — there is only ever this single account. Editors never
+   type the email; the app hides it and only prompts for the shared passcode.
+   The email is configured in the frontend via `VITE_ADMIN_EMAIL`.
 3. Run this SQL in the Supabase SQL editor:
 
 ```sql
@@ -140,19 +143,28 @@ alter table members enable row level security;
 alter table months enable row level security;
 alter table assignments enable row level security;
 
--- Drop old write policies if existing
+-- Anyone (including anonymous visitors) can read the schedule.
+drop policy if exists "public read members" on members;
+drop policy if exists "public read months" on months;
+drop policy if exists "public read assignments" on assignments;
+create policy "public read members" on members for select to anon, authenticated using (true);
+create policy "public read months" on months for select to anon, authenticated using (true);
+create policy "public read assignments" on assignments for select to anon, authenticated using (true);
+
+-- Writes are restricted to the signed-in shared admin account.
+-- TO authenticated only checks "is signed in" — with a single shared account
+-- that is the intended model (no per-editor authorization is needed).
 drop policy if exists "admin write members" on members;
 drop policy if exists "admin write months" on months;
 drop policy if exists "admin write assignments" on assignments;
+create policy "admin write members" on members for all to authenticated using (true) with check (true);
+create policy "admin write months" on months for all to authenticated using (true) with check (true);
+create policy "admin write assignments" on assignments for all to authenticated using (true) with check (true);
+```
 
-drop policy if exists "public write members" on members;
-drop policy if exists "public write months" on months;
-drop policy if exists "public write assignments" on assignments;
-
--- Create policies allowing write access for Edit Mode
-create policy "public write members" on members for all using (true) with check (true);
-create policy "public write months" on months for all using (true) with check (true);
-create policy "public write assignments" on assignments for all using (true) with check (true);
+With a single shared admin account, "authenticated" is sufficient — no role
+table needed. The old "public write ..." policies must be dropped or anonymous
+visitors will be able to edit the schedule.
 ```
 
 Since there is only ever one admin account, "authenticated" is sufficient —
@@ -251,7 +263,7 @@ Card, Badge, etc. Install the component if not avaliable
 
 `.github/workflows/deploy.yml`: on push to `main`, `npm ci && npm run build`,
 publish `dist/` to the `gh-pages` branch (use `peaceiris/actions-gh-pages` or
-equivalent). Store `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as GitHub
+equivalent). Store `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_ADMIN_EMAIL` as GitHub
 Actions repo secrets and inject them as env vars in the build step — never
 hardcode them in source (the anon key is safe to expose publicly, but keep
 the pattern clean).

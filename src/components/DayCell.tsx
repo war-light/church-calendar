@@ -81,7 +81,7 @@ export const DayCell: React.FC<DayCellProps> = ({
               key={assignment.id}
               variant="outline"
               className={cn(
-                "flex items-center justify-between rounded-md px-2 py-1 gap-1.5 text-xs font-semibold shadow-xs transition-all border min-h-fit",
+                "flex rounded-md px-2 py-1.5 text-xs transition-all border min-h-fit",
                 color.bg,
                 color.text,
                 color.border,
