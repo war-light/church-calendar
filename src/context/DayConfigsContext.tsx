@@ -41,11 +41,14 @@ export function DayConfigsProvider({ children }: { children: ReactNode }) {
   const fetchConfigs = useCallback(async () => {
     setLoading(true);
     setError(null);
+    console.log("[DayConfigs] fetching...");
     const { data, error: fetchError } = await supabase
       .from("day_configs")
       .select("*");
+    console.log("[DayConfigs] result:", { data, error: fetchError });
 
     if (fetchError) {
+      console.error("Failed to load day_configs:", fetchError.message);
       setError(fetchError.message);
     } else if (data && data.length > 0) {
       const map = { ...DEFAULT_CONFIGS };
