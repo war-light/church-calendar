@@ -74,7 +74,7 @@ function MainContent() {
   const isAdmin = isAuthenticated && isEditMode;
 
   useEffect(() => {
-    if (!isAuthenticated) setIsEditMode(false);
+    setIsEditMode(isAuthenticated);
   }, [isAuthenticated]);
 
   const sensors = useSensors(
