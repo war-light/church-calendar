@@ -10,7 +10,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
+const MAX_ATTEMPTS = 5;
+const COOLDOWN_MS = 10_000;
 import { useAuthContext } from "../context/AuthContext";
 import { requireAdminEmail } from "../lib/adminConfig";
 
@@ -24,10 +27,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+
+  const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
+  const remainingSeconds = isLocked
+    ? Math.ceil((lockedUntil - Date.now()) / 1000)
+    : 0;
+
+  useEffect(() => {
+    if (!isLocked) return;
+    const timer = setTimeout(() => setLockedUntil(null), remainingSeconds * 1000);
+    return () => clearTimeout(timer);
+  }, [isLocked, remainingSeconds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (isLocked) {
+      setError(`Too many attempts. Try again in ${remainingSeconds}s.`);
+      return;
+    }
 
     if (!passcode.trim()) {
       setError("Please enter the admin passcode.");
@@ -47,8 +68,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
     setSubmitting(false);
 
     if (authError) {
-      setError(authError.message || "Invalid passcode. Please try again.");
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
+      if (attempts >= MAX_ATTEMPTS) {
+        setLockedUntil(Date.now() + COOLDOWN_MS);
+        setError(`Too many failed attempts. Locked for 10s.`);
+      } else {
+        setError(authError.message || "Invalid passcode. Please try again.");
+      }
     } else {
+      setFailedAttempts(0);
+      setLockedUntil(null);
       setPasscode("");
       onClose();
     }
@@ -116,10 +146,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
             </Button>
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || isLocked}
               className="text-xs font-semibold"
             >
-              {submitting ? "Signing in..." : "Sign In"}
+              {isLocked
+                ? `Locked (${remainingSeconds}s)`
+                : submitting
+                  ? "Signing in..."
+                  : "Sign In"}
             </Button>
           </DialogFooter>
         </form>
