@@ -5,7 +5,9 @@ import { toast } from "@/components/ui/toast";
 export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
 if (!ADMIN_EMAIL) {
-  toast.error("Missing Config", {
+  toast.add({
+    type: "error",
+    title: "Missing Config",
     description: "VITE_ADMIN_EMAIL is not set. Authentication will fail.",
   });
 }
