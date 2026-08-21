@@ -133,6 +133,18 @@ create table assignments (
   locked boolean not null default false
 );
 
+create table day_configs (
+  id uuid primary key default gen_random_uuid(),
+  event_type event_type unique not null,
+  slot_count int not null check (slot_count > 0)
+);
+
+insert into day_configs (event_type, slot_count) values
+  ('wednesday', 2),
+  ('friday', 2),
+  ('saturday', 3),
+  ('special', 1);
+
 create index on assignments (month_id);
 ```
 
@@ -142,14 +154,17 @@ create index on assignments (month_id);
 alter table members enable row level security;
 alter table months enable row level security;
 alter table assignments enable row level security;
+alter table day_configs enable row level security;
 
 -- Anyone (including anonymous visitors) can read the schedule.
 drop policy if exists "public read members" on members;
 drop policy if exists "public read months" on months;
 drop policy if exists "public read assignments" on assignments;
+drop policy if exists "public read day_configs" on day_configs;
 create policy "public read members" on members for select to anon, authenticated using (true);
 create policy "public read months" on months for select to anon, authenticated using (true);
 create policy "public read assignments" on assignments for select to anon, authenticated using (true);
+create policy "public read day_configs" on day_configs for select to anon, authenticated using (true);
 
 -- Writes are restricted to the signed-in shared admin account.
 -- TO authenticated only checks "is signed in" — with a single shared account
@@ -157,9 +172,11 @@ create policy "public read assignments" on assignments for select to anon, authe
 drop policy if exists "admin write members" on members;
 drop policy if exists "admin write months" on months;
 drop policy if exists "admin write assignments" on assignments;
+drop policy if exists "admin write day_configs" on day_configs;
 create policy "admin write members" on members for all to authenticated using (true) with check (true);
 create policy "admin write months" on months for all to authenticated using (true) with check (true);
 create policy "admin write assignments" on assignments for all to authenticated using (true) with check (true);
+create policy "admin write day_configs" on day_configs for all to authenticated using (true) with check (true);
 ```
 
 With a single shared admin account, "authenticated" is sufficient — no role

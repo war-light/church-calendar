@@ -2,8 +2,8 @@ import { Assignment, DaySpec, EventType, Member } from "../types";
 
 export type { DaySpec };
 
-export const SLOT_COUNTS: Record<EventType, number> = {
-  wednesday: 1,
+const FALLBACK_SLOT_COUNTS: Record<EventType, number> = {
+  wednesday: 2,
   friday: 2,
   saturday: 3,
   special: 1,
@@ -13,7 +13,9 @@ export function generateMonthAssignments(
   daysInMonth: DaySpec[],
   members: Member[],
   existingAssignments: Assignment[] = [],
+  slotCounts?: Record<EventType, number>,
 ): Assignment[] {
+  const counts = slotCounts || FALLBACK_SLOT_COUNTS;
   const activeMembers = members.filter((m) => m.active);
 
   // Group existing assignments by date
@@ -44,7 +46,7 @@ export function generateMonthAssignments(
   const result: Assignment[] = [];
 
   for (const day of daysInMonth) {
-    const defaultSlots = SLOT_COUNTS[day.eventType] || 1;
+    const defaultSlots = counts[day.eventType] || 1;
     const dayExisting = existingByDate.get(day.date) || [];
     const requiredSlots = Math.max(defaultSlots, dayExisting.length);
 

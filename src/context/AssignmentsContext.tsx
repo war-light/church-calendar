@@ -11,6 +11,7 @@ import { generateMonthAssignments } from "../lib/algorithm";
 import { getDaysInMonth } from "../lib/dateUtils";
 import { supabase } from "../lib/supabase";
 import { Assignment } from "../types";
+import { useDayConfigsContext } from "./DayConfigsContext";
 import { useMembersContext } from "./MembersContext";
 import { useMonthsContext } from "./MonthsContext";
 
@@ -36,6 +37,7 @@ const AssignmentsContext = createContext<AssignmentsContextType | undefined>(
 export function AssignmentsProvider({ children }: { children: ReactNode }) {
   const { selectedMonth, createMonth } = useMonthsContext();
   const { members } = useMembersContext();
+  const { configs: slotCounts } = useDayConfigsContext();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +95,32 @@ export function AssignmentsProvider({ children }: { children: ReactNode }) {
         if (fetchError) {
           setError(fetchError.message);
         } else if (data && data.length > 0) {
-          setAssignments(data as Assignment[]);
+          const daysInMonth = getDaysInMonth(
+            selectedMonth!.year,
+            selectedMonth!.month,
+          );
+          const byDate = new Map<string, Assignment[]>();
+          for (const a of data) {
+            const list = byDate.get(a.day_date) || [];
+            list.push(a);
+            byDate.set(a.day_date, list);
+          }
+          const padded = [...(data as Assignment[])];
+          for (const day of daysInMonth) {
+            const required = slotCounts[day.eventType] || 1;
+            const existing = byDate.get(day.date) || [];
+            for (let i = existing.length; i < required; i++) {
+              padded.push({
+                id: crypto.randomUUID(),
+                month_id: targetMonthId,
+                day_date: day.date,
+                event_type: day.eventType,
+                member_id: null,
+                locked: false,
+              });
+            }
+          }
+          setAssignments(padded);
           setLoading(false);
           return;
         }
@@ -106,12 +133,7 @@ export function AssignmentsProvider({ children }: { children: ReactNode }) {
           selectedMonth.month,
         );
         const virtualAssignments = daysInMonth.flatMap((day) => {
-          const slotCount =
-            day.eventType === "wednesday"
-              ? 1
-              : day.eventType === "friday"
-                ? 2
-                : 3;
+          const slotCount = slotCounts[day.eventType] || 1;
           return Array.from({ length: slotCount }, () => ({
             id: crypto.randomUUID(),
             month_id: selectedMonth.id,
@@ -263,6 +285,7 @@ export function AssignmentsProvider({ children }: { children: ReactNode }) {
       daysInMonth,
       activeMembers,
       assignments,
+      slotCounts,
     );
 
     // Attach valid UUIDs

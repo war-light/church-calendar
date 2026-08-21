@@ -12,13 +12,13 @@ const mockMembers: Member[] = [
 ];
 
 const daysInMonthSample: DaySpec[] = [
-  { date: "2026-09-02", eventType: "wednesday" }, // 1 slot
+  { date: "2026-09-02", eventType: "wednesday" }, // 2 slots
   { date: "2026-09-04", eventType: "friday" }, // 2 slots
   { date: "2026-09-05", eventType: "saturday" }, // 3 slots
-  { date: "2026-09-09", eventType: "wednesday" }, // 1 slot
+  { date: "2026-09-09", eventType: "wednesday" }, // 2 slots
   { date: "2026-09-11", eventType: "friday" }, // 2 slots
   { date: "2026-09-12", eventType: "saturday" }, // 3 slots
-  { date: "2026-09-16", eventType: "wednesday" }, // 1 slot
+  { date: "2026-09-16", eventType: "wednesday" }, // 2 slots
   { date: "2026-09-18", eventType: "friday" }, // 2 slots
   { date: "2026-09-19", eventType: "saturday" }, // 3 slots
 ];
@@ -31,8 +31,8 @@ describe("generateMonthAssignments Algorithm Tests", () => {
       [],
     );
 
-    // Total slots: 3 wed (3*1) + 3 fri (3*2) + 3 sat (3*3) = 3 + 6 + 9 = 18 slots
-    assert.strictEqual(assignments.length, 18);
+    // Total slots: 3 wed (3*2) + 3 fri (3*2) + 3 sat (3*3) = 6 + 6 + 9 = 21 slots
+    assert.strictEqual(assignments.length, 21);
 
     // Group by date to check daily uniqueness
     const byDate = new Map<string, Assignment[]>();
@@ -46,7 +46,7 @@ describe("generateMonthAssignments Algorithm Tests", () => {
     for (const day of daysInMonthSample) {
       const dayAssignments = byDate.get(day.date) || [];
       const expectedSlots =
-        day.eventType === "wednesday" ? 1 : day.eventType === "friday" ? 2 : 3;
+        day.eventType === "wednesday" ? 2 : day.eventType === "friday" ? 2 : 3;
       assert.strictEqual(dayAssignments.length, expectedSlots);
 
       const memberIdsOnDay = dayAssignments
@@ -73,7 +73,7 @@ describe("generateMonthAssignments Algorithm Tests", () => {
     const minCount = Math.min(...counts);
     const maxCount = Math.max(...counts);
 
-    // With 18 slots and 5 members, counts should be 3 or 4 (max - min <= 1)
+    // With 21 slots and 5 members, counts should be 4 or 5 (max - min <= 1)
     assert.ok(
       maxCount - minCount <= 1,
       `Distribution unbalanced: min=${minCount}, max=${maxCount}`,
@@ -98,7 +98,7 @@ describe("generateMonthAssignments Algorithm Tests", () => {
       lockedAssignments,
     );
 
-    assert.strictEqual(assignments.length, 18);
+    assert.strictEqual(assignments.length, 21);
 
     // Verify lock-1 is present and unchanged
     const lock1 = assignments.find((a) => a.id === "lock-1");

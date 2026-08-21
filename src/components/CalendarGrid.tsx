@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { forwardRef, useMemo } from "react";
+import { useDayConfigsContext } from "../context/DayConfigsContext";
 import { Assignment, Member, MonthRecord } from "../types";
 import { DayCell } from "./DayCell";
 
@@ -36,12 +37,6 @@ const MONTH_NAMES = [
   "November",
   "December",
 ];
-
-const SLOT_COUNTS: Record<string, number> = {
-  wednesday: 1,
-  friday: 2,
-  saturday: 3,
-};
 
 function getWeeksForMonth(year: number, month: number): WeekRow[] {
   const weeks: WeekRow[] = [];
@@ -113,6 +108,8 @@ export const CalendarGrid = forwardRef<HTMLDivElement, CalendarGridProps>(
       return map;
     }, [members]);
 
+    const { configs: slotCounts } = useDayConfigsContext();
+
     const assignmentsByDate = useMemo(() => {
       const map: Record<string, Assignment[]> = {};
       assignments.forEach((a) => {
@@ -182,21 +179,21 @@ export const CalendarGrid = forwardRef<HTMLDivElement, CalendarGridProps>(
               className="p-3 text-center justify-center gap-2 text-xs sm:text-sm font-semibold rounded-xl"
             >
               <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
-              Wednesday (1 slot)
+              Wednesday ({slotCounts.wednesday} slots)
             </Badge>
             <Badge
               variant="outline"
               className="p-3 text-center justify-center gap-2 text-xs sm:text-sm font-semibold rounded-xl"
             >
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0" />
-              Friday (2 slots)
+              Friday ({slotCounts.friday} slots)
             </Badge>
             <Badge
               variant="outline"
               className="p-3 text-center justify-center gap-2 text-xs sm:text-sm font-semibold rounded-xl"
             >
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
-              Saturday (3 slots)
+              Saturday ({slotCounts.saturday} slots)
             </Badge>
           </div>
 
@@ -230,7 +227,7 @@ export const CalendarGrid = forwardRef<HTMLDivElement, CalendarGridProps>(
                         date={dateStr}
                         assignments={dayAssignments}
                         memberMap={memberMap}
-                        maxSlots={SLOT_COUNTS[eventType]}
+                        maxSlots={slotCounts[eventType as keyof typeof slotCounts]}
                         isAdmin={isAdmin}
                         activeDragMemberId={activeDragMemberId}
                         onClearAssignment={handleClear}
