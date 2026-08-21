@@ -156,24 +156,39 @@ export function AssignmentsProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedMonth?.id, fetchAssignments]);
 
-  const updateAssignment = async (id: string, memberId: string | null) => {
+  const persistVirtualAssignment = async (
+    virtualId: string,
+    updates: Partial<Assignment>,
+  ) => {
     const targetMonth = await ensureMonthSaved();
+    if (!targetMonth) return { error: new Error("Failed to save month") };
 
-    if (!isValidUuid(id) && targetMonth) {
-      const updatedList = assignments.map((a) =>
-        a.id === id ? { ...a, member_id: memberId } : a,
-      );
-      const prepared = updatedList.map((a) => ({
-        ...a,
-        id: ensureValidUuid(a.id),
-        month_id: targetMonth.id,
-      }));
-      const { error: upsertError } = await supabase
-        .from("assignments")
-        .upsert(prepared);
-      if (upsertError) return { error: upsertError as any };
-      setAssignments(prepared);
-      return { error: null };
+    const target = assignments.find((a) => a.id === virtualId);
+    if (!target) return { error: new Error("Assignment not found") };
+
+    const newId = crypto.randomUUID();
+    const row = {
+      id: newId,
+      month_id: targetMonth.id,
+      day_date: target.day_date,
+      event_type: target.event_type,
+      member_id: target.member_id,
+      locked: target.locked,
+      ...updates,
+    };
+
+    const { error } = await supabase.from("assignments").insert(row);
+    if (error) return { error };
+
+    setAssignments((prev) =>
+      prev.map((a) => (a.id === virtualId ? { ...row } : a)),
+    );
+    return { error: null };
+  };
+
+  const updateAssignment = async (id: string, memberId: string | null) => {
+    if (!isValidUuid(id)) {
+      return persistVirtualAssignment(id, { member_id: memberId });
     }
 
     const { error } = await supabase
@@ -192,27 +207,13 @@ export function AssignmentsProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleLock = async (id: string) => {
-    const targetMonth = await ensureMonthSaved();
     const target = assignments.find((a) => a.id === id);
     if (!target) return { error: new Error("Assignment not found") };
 
     const newLockedState = !target.locked;
 
-    if (!isValidUuid(id) && targetMonth) {
-      const updatedList = assignments.map((a) =>
-        a.id === id ? { ...a, locked: newLockedState } : a,
-      );
-      const prepared = updatedList.map((a) => ({
-        ...a,
-        id: ensureValidUuid(a.id),
-        month_id: targetMonth.id,
-      }));
-      const { error: upsertError } = await supabase
-        .from("assignments")
-        .upsert(prepared);
-      if (upsertError) return { error: upsertError as any };
-      setAssignments(prepared);
-      return { error: null };
+    if (!isValidUuid(id)) {
+      return persistVirtualAssignment(id, { locked: newLockedState });
     }
 
     const { error } = await supabase
