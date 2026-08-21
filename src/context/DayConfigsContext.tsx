@@ -33,9 +33,8 @@ const DayConfigsContext = createContext<DayConfigsContextType | undefined>(
 );
 
 export function DayConfigsProvider({ children }: { children: ReactNode }) {
-  const [configs, setConfigs] = useState<Record<EventType, number>>(
-    DEFAULT_CONFIGS,
-  );
+  const [configs, setConfigs] =
+    useState<Record<EventType, number>>(DEFAULT_CONFIGS);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 

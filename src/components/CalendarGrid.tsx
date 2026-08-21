@@ -227,7 +227,9 @@ export const CalendarGrid = forwardRef<HTMLDivElement, CalendarGridProps>(
                         date={dateStr}
                         assignments={dayAssignments}
                         memberMap={memberMap}
-                        maxSlots={slotCounts[eventType as keyof typeof slotCounts]}
+                        maxSlots={
+                          slotCounts[eventType as keyof typeof slotCounts]
+                        }
                         isAdmin={isAdmin}
                         activeDragMemberId={activeDragMemberId}
                         onClearAssignment={handleClear}

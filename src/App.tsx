@@ -17,7 +17,16 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Church, Edit3, KeyRound, Loader2, LogOut, Moon, Sun, Users } from "lucide-react";
+import {
+  Church,
+  Edit3,
+  KeyRound,
+  Loader2,
+  LogOut,
+  Moon,
+  Sun,
+  Users,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CalendarGrid } from "./components/CalendarGrid";
 import { ExportButton } from "./components/ExportButton";
@@ -309,10 +318,7 @@ function MainContent() {
           onClose={() => setIsMemberManagerOpen(false)}
         />
 
-        <LoginForm
-          isOpen={isLoginOpen}
-          onClose={() => setIsLoginOpen(false)}
-        />
+        <LoginForm isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       </div>
     </DndContext>
   );

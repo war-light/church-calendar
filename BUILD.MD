@@ -182,7 +182,8 @@ create policy "admin write day_configs" on day_configs for all to authenticated 
 With a single shared admin account, "authenticated" is sufficient — no role
 table needed. The old "public write ..." policies must be dropped or anonymous
 visitors will be able to edit the schedule.
-```
+
+````
 
 Since there is only ever one admin account, "authenticated" is sufficient —
 no role table needed.
@@ -207,7 +208,7 @@ function generateMonthAssignments(
   members: Member[],
   existingAssignments: Assignment[], // to respect locked slots
 ): Assignment[];
-```
+````
 
 Rules to implement:
 
