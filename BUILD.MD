@@ -56,7 +56,6 @@ church-calendar/
 │   │   └── ExportButton.tsx    # wraps html-to-image
 │   └── styles/
 │       └── index.css           # tailwind entrypoint
-├── .env.example
 ├── index.html
 ├── package.json
 ├── tailwind.config.js
@@ -85,13 +84,7 @@ Set the Vite `base` path in `vite.config.ts` to `/church-calendar/` (or whatever
 the repo name is) — required for GitHub Pages project sites, otherwise assets
 404 in production.
 
-Create `.env.example`:
 
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_ADMIN_EMAIL=
-```
 
 Never commit the real `.env`. `.gitignore` must include `.env`.
 

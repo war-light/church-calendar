@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import React, { useState } from "react";
 import { useAuthContext } from "../context/AuthContext";
-import { ADMIN_EMAIL } from "../lib/adminConfig";
+import { requireAdminEmail } from "../lib/adminConfig";
 
 interface LoginFormProps {
   isOpen: boolean;
@@ -34,8 +34,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isOpen, onClose }) => {
       return;
     }
 
+    let adminEmail: string;
+    try {
+      adminEmail = requireAdminEmail();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Configuration error.");
+      return;
+    }
+
     setSubmitting(true);
-    const { error: authError } = await signIn(ADMIN_EMAIL, passcode);
+    const { error: authError } = await signIn(adminEmail, passcode);
     setSubmitting(false);
 
     if (authError) {

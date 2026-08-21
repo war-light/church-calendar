@@ -133,7 +133,8 @@ export function MonthsProvider({ children }: { children: ReactNode }) {
         .insert(assignmentsToInsert);
 
       if (assignError) {
-        console.error("Failed to insert initial assignments:", assignError);
+        setLoading(false);
+        return { data: newMonthRecord, error: assignError };
       }
     }
 

@@ -102,7 +102,7 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isAdmin }) => {
           </form>
         )}
 
-        <div className="space-y-2 overflow-y-auto max-h-[540px] pr-1">
+        <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-accent max-h-135 pr-1">
           {members.length === 0 ? (
             <div className="py-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
               No active members registered.

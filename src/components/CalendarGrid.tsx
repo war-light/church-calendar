@@ -214,7 +214,7 @@ export const CalendarGrid = forwardRef<HTMLDivElement, CalendarGridProps>(
                       return (
                         <div
                           key={key}
-                          className="bg-card/30 border border-dashed border-border/60 rounded-lg p-3 flex items-center justify-center text-muted-foreground min-h-[60px]"
+                          className="bg-card/30 border border-dashed border-border/60 rounded-lg p-3 flex items-center justify-center text-muted-foreground min-h-15"
                         >
                           <span className="text-xs">No service</span>
                         </div>

@@ -113,7 +113,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
         </form>
 
         {/* Roster List */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-[150px]">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-37.5">
           <div className="text-xs font-semibold text-muted-foreground px-1 mb-2">
             Active Members ({members.length})
           </div>
